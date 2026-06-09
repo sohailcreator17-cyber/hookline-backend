@@ -1,40 +1,43 @@
-import os
 import json
+import os
 from openai import OpenAI
 
 client = OpenAI(
-    api_key=os.environ["OPENAI_API_KEY"]
+    api_key=os.environ.get("OPENAI_API_KEY")
 )
 
 SYSTEM_PROMPT = """
 Aap dunya ke sabsay behtareen B2B sales expert hain.
-Aap ko jo bhi text diya jaye, aap ne us company ki kamiyan dhoondni hain aur ek short, punchy cold email/pitch likhni hai.
+
+Aap ko jo bhi text diya jaye, uski bunyaad par ek short, professional,
+personalized cold email/pitch likhni hai.
 
 Rules:
-- Personalized ho
-- Professional ho
-- Strong hook ho
-- Clear CTA ho
-- 150 words se kam ho
+- Strong opening hook
+- Personalized message
+- Professional tone
+- Clear CTA
+- 150 words se kam
 """
 
 def handler(request):
+
+    if request.method != "POST":
+        return {
+            "statusCode": 405,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "body": json.dumps({
+                "success": False,
+                "error": "Only POST requests are allowed"
+            })
+        }
+
     try:
-        if request.method != "POST":
-            return {
-                "statusCode": 405,
-                "headers": {
-                    "Content-Type": "application/json"
-                },
-                "body": json.dumps({
-                    "success": False,
-                    "error": "Method not allowed"
-                })
-            }
+        body = request.get_json() or {}
 
-        body = request.get_json()
-
-        user_input = body.get("input")
+        user_input = body.get("input", "").strip()
 
         if not user_input:
             return {
@@ -44,11 +47,11 @@ def handler(request):
                 },
                 "body": json.dumps({
                     "success": False,
-                    "error": "Input field is required"
+                    "error": "Input is required"
                 })
             }
 
-        completion = client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
@@ -64,7 +67,7 @@ def handler(request):
             max_tokens=300
         )
 
-        pitch = completion.choices[0].message.content
+        pitch = response.choices[0].message.content
 
         return {
             "statusCode": 200,
