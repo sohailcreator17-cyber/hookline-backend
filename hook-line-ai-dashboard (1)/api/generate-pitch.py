@@ -1,27 +1,28 @@
+import os
 import json
 from groq import Groq
 
-# Replace with your actual Groq API key
-api_key = "PASTE_YOUR_GROQ_KEY_HERE"
-
-client = Groq(api_key=api_key)
+client = Groq(
+    api_key=os.environ.get("OPENAI_API_KEY")
+)
 
 SYSTEM_PROMPT = """
 Aap dunya ke sabsay behtareen B2B sales expert hain.
 
-Aap ko jo bhi text diya jaye, aap ne us company ki kamiyan dhoondni hain
-aur ek short, punchy cold email/pitch likhni hai.
+Aap ko jo bhi text diya jaye, us company ka analysis karna hai aur
+ek short, punchy, personalized cold email/pitch likhni hai.
 
 Rules:
 - Personalized ho
 - Professional ho
-- Strong hook ho
+- Strong opening hook ho
 - Clear CTA ho
 - 150 words se kam ho
 """
 
 def handler(request):
     try:
+        # Sirf POST allow karein
         if request.method != "POST":
             return {
                 "statusCode": 405,
@@ -34,6 +35,7 @@ def handler(request):
                 })
             }
 
+        # Request body parse karein
         body = request.get_json() or {}
 
         user_input = body.get("input", "").strip()
@@ -50,7 +52,8 @@ def handler(request):
                 })
             }
 
-        completion = client.chat.completions.create(
+        # Groq API call
+        response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {
@@ -66,7 +69,7 @@ def handler(request):
             max_tokens=300
         )
 
-        pitch = completion.choices[0].message.content
+        pitch = response.choices[0].message.content
 
         return {
             "statusCode": 200,
