@@ -2,7 +2,8 @@
   "rewrites": [
     {
       "source": "/api/generate-pitch",
-      "destination": "/api/generate-pitch"
+      "destination": "hookline-backend-j0eheblv0-sohailcreator17-1050s-projects.vercel.app"
+
     }
   ]
 }
