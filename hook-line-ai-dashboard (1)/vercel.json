@@ -1,13 +1,8 @@
 {
-  "functions": {
-    "api/*.py": {
-      "runtime": "python3.12"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/generate-pitch",
-      "destination": "/api/generate-pitch.py"
+      "destination": "/api/generate-pitch"
     }
   ]
 }
