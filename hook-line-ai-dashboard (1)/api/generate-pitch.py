@@ -1,95 +1,48 @@
 import os
 import json
-from groq import Groq
+import requests
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
-client = Groq(
-    api_key=os.environ.get("OPENAI_API_KEY")
-)
+app = Flask(__name__)
+CORS(app)
 
-SYSTEM_PROMPT = """
-Aap dunya ke sabsay behtareen B2B sales expert hain.
-
-Aap ko jo bhi text diya jaye, us company ka analysis karna hai aur
-ek short, punchy, personalized cold email/pitch likhni hai.
-
-Rules:
-- Personalized ho
-- Professional ho
-- Strong opening hook ho
-- Clear CTA ho
-- 150 words se kam ho
-"""
-
-def handler(request):
+@app.route('/api/generate-pitch', methods=['POST'])
+def generate_pitch():
     try:
-        # Sirf POST allow karein
-        if request.method != "POST":
-            return {
-                "statusCode": 405,
-                "headers": {
-                    "Content-Type": "application/json"
-                },
-                "body": json.dumps({
-                    "success": False,
-                    "error": "Method not allowed"
-                })
-            }
+        # Vercel settings se aap ki Groq key uthaye ga
+        api_key = os.environ.get("OPENAI_API_KEY")
+        
+        data = request.get_json()
+        user_input = data.get('text', '') or data.get('input', '')
 
-        # Request body parse karein
-        body = request.get_json() or {}
-
-        user_input = body.get("input", "").strip()
-
-        if not user_input:
-            return {
-                "statusCode": 400,
-                "headers": {
-                    "Content-Type": "application/json"
-                },
-                "body": json.dumps({
-                    "success": False,
-                    "error": "Input field is required"
-                })
-            }
-
-        # Groq API call
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
+        # Direct Groq AI ke muft server ka rasta
+        url = "https://groq.com"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
                 {
                     "role": "system",
-                    "content": SYSTEM_PROMPT
+                    "content": "Aap dunya ke sabsay behtareen B2B sales expert hain. Aap ko jo bhi text diya jaye, aap ne us company ki kamiyan dhoondni hain aur ek aisi short, punchy cold email/pitch likhni hai jise parh kar response rate 20% se zyada aaye. Respond inside a clean string format."
                 },
                 {
                     "role": "user",
-                    "content": user_input
+                    "content": f"Prospect Details: {user_input}"
                 }
-            ],
-            temperature=0.7,
-            max_tokens=300
-        )
-
-        pitch = response.choices[0].message.content
-
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json"
-            },
-            "body": json.dumps({
-                "success": True,
-                "pitch": pitch
-            })
+            ]
         }
+
+        response = requests.post(url, headers=headers, json=payload)
+        response_data = response.json()
+        
+        # Groq se aaya hua muft text result
+        ai_text = response_data['choices'][0]['message']['content']
+        return jsonify({"text": ai_text, "pitch": ai_text})
 
     except Exception as e:
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json"
-            },
-            "body": json.dumps({
-                "success": False,
-                "error": str(e)
-            })
-        }
+        return jsonify({"error": str(e)}), 500
